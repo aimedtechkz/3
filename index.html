@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>FUTURE DENT - Инновационная стоматология будущего</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://widget.cloudpayments.ru/bundles/cloudpayments.js"></script>
     <style>
         * {
             margin: 0;
@@ -676,17 +677,17 @@
                 <label for="service">Услуга</label>
                 <select id="service">
                     <option value="">Выберите услугу</option>
-                    <option value="consultation">Консультация</option>
-                    <option value="treatment">Лечение</option>
-                    <option value="implant">Имплантация</option>
-                    <option value="esthetic">Эстетика</option>
+                    <option value="consultation" data-amount="5000">Консультация</option>
+                    <option value="treatment" data-amount="10000">Лечение</option>
+                    <option value="implant" data-amount="50000">Имплантация</option>
+                    <option value="esthetic" data-amount="20000">Эстетика</option>
                 </select>
             </div>
             <div class="form-group">
                 <label for="date">Желаемая дата</label>
                 <input type="date" id="date">
             </div>
-            <button class="cta-button" style="width: 100%;">Отправить заявку</button>
+            <button class="cta-button" style="width: 100%;" id="pay-button">Оплатить и отправить заявку</button>
         </div>
     </section>
 
@@ -766,11 +767,52 @@
             observer.observe(el);
         });
 
-        // Обработка формы
-        document.querySelector('.appointment-form button').addEventListener('click', function(e) {
+        // Обработка формы с интеграцией оплаты
+        document.getElementById('pay-button').addEventListener('click', function(e) {
             e.preventDefault();
-            alert('Спасибо! Мы свяжемся с вами в ближайшее время для подтверждения записи.');
-            this.closest('form').reset();
+            
+            const name = document.getElementById('name').value;
+            const phone = document.getElementById('phone').value;
+            const serviceSelect = document.getElementById('service');
+            const service = serviceSelect.value;
+            const amount = parseFloat(serviceSelect.options[serviceSelect.selectedIndex].dataset.amount);
+            const date = document.getElementById('date').value;
+
+            if (!name || !phone || !service || !date || isNaN(amount)) {
+                alert('Пожалуйста, заполните все поля');
+                return;
+            }
+
+            const description = `Запись на прием: ${service}, дата: ${date}, имя: ${name}, телефон: ${phone}`;
+
+            var widget = new cp.CloudPayments();
+            widget.pay('charge',
+                {
+                    publicId: 'test_api_00000000000000000000001', // Замените на ваш реальный publicId
+                    description: description,
+                    amount: amount,
+                    currency: 'KZT',
+                    invoiceId: new Date().getTime().toString(),
+                    data: {
+                        name: name,
+                        phone: phone,
+                        service: service,
+                        date: date
+                    }
+                },
+                {
+                    onSuccess: function (options) {
+                        alert('Оплата прошла успешно! Мы свяжемся с вами для подтверждения.');
+                        document.querySelector('.appointment-form').reset();
+                    },
+                    onError: function (options) {
+                        alert('Ошибка оплаты. Пожалуйста, попробуйте снова.');
+                    },
+                    onComplete: function (options) {
+                        // Действие после закрытия виджета
+                    }
+                }
+            );
         });
     </script>
 </body>
